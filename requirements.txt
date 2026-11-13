@@ -1,0 +1,10 @@
+# local: install torch first from https://download.pytorch.org/whl/cpu
+torch
+sentencepiece
+numpy
+pyarrow
+huggingface_hub
+transformers
+safetensors
+pytest
+tqdm

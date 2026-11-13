@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bangla Mini-GPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f1ea; --panel: #ffffff; --ink: #17233b; --muted: #6b7385; --line: #e3ddd2;
+  --navy: #1b2a4a; --copper: #b86b3a; --copper-soft: #f3e3d6; --ok: #2f7d5b;
+  --train: #1b2a4a; --val: #b86b3a; --shadow: 0 1px 3px rgba(23,35,59,.08), 0 8px 24px rgba(23,35,59,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1626; --panel: #172036; --ink: #e8eaf0; --muted: #98a0b3; --line: #2a3550;
+    --navy: #8fa6d6; --copper: #e0955f; --copper-soft: #3a2a20; --ok: #5fc29a;
+    --train: #8fa6d6; --val: #e0955f; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1626; --panel: #172036; --ink: #e8eaf0; --muted: #98a0b3; --line: #2a3550;
+  --navy: #8fa6d6; --copper: #e0955f; --copper-soft: #3a2a20; --ok: #5fc29a;
+  --train: #8fa6d6; --val: #e0955f; --shadow: none;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.6 Inter, "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif; }
+.bn { font-family: "Noto Sans Bengali", "Nirmala UI", sans-serif; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 60px; }
+header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.logo { width: 42px; height: 42px; border-radius: 12px; background: var(--navy); color: #fff;
+  display: grid; place-items: center; font: 700 22px "Noto Sans Bengali", sans-serif; }
+:root[data-theme="dark"] .logo, :root:not([data-theme="light"]) .logo { color: var(--bg); }
+h1 { font-size: 20px; margin: 0; line-height: 1.2; }
+h1 small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+.models { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px;
+  padding: 6px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+.chip b { font-weight: 700; }
+.chip span { color: var(--muted); margin-left: 4px; }
+.chip.on { border-color: var(--copper); background: var(--copper-soft); }
+nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; }
+nav button { border: 0; background: none; color: var(--muted); font: 600 14px Inter, sans-serif;
+  padding: 10px 14px; cursor: pointer; border-bottom: 2.5px solid transparent; white-space: nowrap; }
+nav button.on { color: var(--ink); border-color: var(--copper); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+.grid { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+textarea { width: 100%; min-height: 90px; resize: vertical; border: 1.5px solid var(--line); border-radius: 10px;
+  padding: 12px; font: 17px/1.7 "Noto Sans Bengali", "Nirmala UI", sans-serif; background: var(--bg); color: var(--ink); }
+textarea:focus { outline: none; border-color: var(--copper); }
+.sugg { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 4px; }
+.sugg button { border: 1px dashed var(--line); background: none; color: var(--ink); border-radius: 8px;
+  padding: 3px 10px; cursor: pointer; font: 14px "Noto Sans Bengali", "Nirmala UI", sans-serif; }
+.sugg button:hover { border-color: var(--copper); }
+.btns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn { border: 0; border-radius: 10px; padding: 10px 18px; font: 600 14px Inter, sans-serif; cursor: pointer;
+  background: var(--navy); color: var(--bg); }
+.btn.alt { background: none; color: var(--ink); border: 1.5px solid var(--line); }
+.btn:disabled { opacity: .5; cursor: wait; }
+.out { margin-top: 16px; display: grid; gap: 12px; }
+.result { white-space: pre-wrap; font: 17px/1.85 "Noto Sans Bengali", "Nirmala UI", sans-serif; min-height: 60px; }
+.result .p { font-weight: 700; }
+.result .g { color: var(--copper); }
+.meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+.meta b { color: var(--ink); }
+.ctrl label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 12px; }
+.ctrl label b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ctrl input[type=range] { width: 100%; accent-color: var(--copper); }
+.ctrl .hint { font-size: 11.5px; color: var(--muted); margin: 0; }
+.toks { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 14px; font: 17px "Noto Sans Bengali", "Nirmala UI", sans-serif; }
+.tok { border-radius: 6px; padding: 2px 7px; position: relative; cursor: default; }
+.tok sub { font: 10px Inter, sans-serif; opacity: .65; margin-left: 3px; }
+.tok.byte { outline: 1.5px dashed var(--copper); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 14px; }
+.stat { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+.stat div { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+svg text { fill: var(--muted); font: 11px Inter, sans-serif; }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.timeline { display: grid; gap: 10px; margin-top: 16px; }
+.tl { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: start; border-top: 1px solid var(--line); padding-top: 10px; }
+.tl .s { font-size: 12px; color: var(--muted); }
+.tl .s b { display: block; color: var(--ink); font-size: 14px; }
+.tl .x { font: 15px/1.7 "Noto Sans Bengali", "Nirmala UI", sans-serif; white-space: pre-wrap; max-height: 7.5em; overflow: hidden; }
+.arch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.layer { width: 100%; max-width: 420px; border-radius: 10px; padding: 8px 12px; text-align: center; font-size: 13px; }
+.layer.io { background: var(--copper-soft); }
+.layer.blk { background: var(--bg); border: 1.5px solid var(--line); display: flex; justify-content: space-between; }
+.arrow { color: var(--muted); font-size: 12px; line-height: 1; }
+.bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; margin: 8px 0 4px; }
+.bar div:first-child { background: var(--copper); } .bar div:last-child { background: var(--navy); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td { padding: 6px 0; border-bottom: 1px solid var(--line); } td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+.hidden { display: none; }
+footer { margin-top: 30px; text-align: center; color: var(--muted); font-size: 12px; }
+.theme { border: 0; background: none; cursor: pointer; font-size: 18px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">বা</div>
+    <h1>Bangla Mini-GPT <small>from-scratch Bangla language model · playground</small></h1>
+    <div class="models" id="models"></div>
+    <button class="theme" id="theme" title="Light / dark">◐</button>
+  </header>
+
+  <nav id="tabs">
+    <button data-tab="write" class="on">✍ Write</button>
+    <button data-tab="tokens">🔤 Tokens</button>
+    <button data-tab="train">📈 Training</button>
+    <button data-tab="model">🧠 Model</button>
+  </nav>
+
+  <!-- WRITE -->
+  <section id="write">
+    <div class="grid">
+      <div class="card">
+        <textarea id="prompt" class="bn" placeholder="একটি বাক্যের শুরু লিখুন…">বাংলাদেশের রাজধানী</textarea>
+        <div class="sugg" id="sugg"></div>
+        <div class="btns">
+          <button class="btn" id="go">Generate</button>
+          <button class="btn alt" id="cmp" title="Same prompt, same seed, every model">Compare all models</button>
+          <button class="btn alt" id="stop">Stop</button>
+        </div>
+      </div>
+      <div class="card ctrl">
+        <label>Length <b id="v-max">120</b></label><input type="range" id="max" min="10" max="400" value="120">
+        <label>Temperature <b id="v-temp">0.8</b></label><input type="range" id="temp" min="0.1" max="1.5" step="0.05" value="0.8">
+        <p class="hint">low = safe · high = creative</p>
+        <label>Top-k <b id="v-topk">50</b></label><input type="range" id="topk" min="0" max="200" value="50">
+        <label>Top-p <b id="v-topp">0.95</b></label><input type="range" id="topp" min="0.5" max="1" step="0.01" value="0.95">
+        <label>Repeat penalty <b id="v-rep">1.15</b></label><input type="range" id="rep" min="1" max="1.6" step="0.01" value="1.15">
+        <label>Seed <b id="v-seed">random</b></label><input type="range" id="seed" min="0" max="100" value="0">
+        <p class="hint">0 = random · fixed seed = repeatable</p>
+      </div>
+    </div>
+    <div class="out" id="out"></div>
+  </section>
+
+  <!-- TOKENS -->
+  <section id="tokens" class="hidden">
+    <div class="card">
+      <textarea id="ttext" class="bn">বাংলাদেশ দক্ষিণ এশিয়ার একটি দেশ। ১৯৭১ সালে স্বাধীনতা লাভ করে। Dhaka 2024 😀</textarea>
+      <div class="stats" id="tstats"></div>
+      <div class="toks" id="toks"></div>
+      <p class="hint" style="color:var(--muted);font-size:12px;margin-top:12px">▁ = space before the word · dashed = raw byte (character the tokenizer never learned) · small number = token id</p>
+    </div>
+  </section>
+
+  <!-- TRAINING -->
+  <section id="train" class="hidden">
+    <div class="card">
+      <div class="stats" id="trstats"></div>
+      <div class="legend" style="margin-top:16px"><span><i style="background:var(--train)"></i>train loss</span><span><i style="background:var(--val)"></i>val loss</span></div>
+      <svg id="chart" viewBox="0 0 800 280" width="100%" preserveAspectRatio="none" style="height:280px"></svg>
+      <h3 style="margin:22px 0 0;font-size:15px">Watch it learn: samples at each checkpoint</h3>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </section>
+
+  <!-- MODEL -->
+  <section id="model" class="hidden">
+    <div class="grid">
+      <div class="card"><div class="arch" id="arch"></div></div>
+      <div class="card">
+        <div style="font-size:13px;color:var(--muted)">Where the parameters live</div>
+        <div class="bar" id="pbar"><div></div><div></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)" id="plegend"></div>
+        <table id="cfg" style="margin-top:14px"></table>
+      </div>
+    </div>
+  </section>
+
+  <footer>Built by Atiqul Islam Chowdhury · runs 100% on this PC</footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { models: [], size: null, ctrl: null };
+const fmt = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n);
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+// theme toggle (remembered per browser)
+try { const t = localStorage.getItem("bmg-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+$("theme").onclick = () => {
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const cur = document.documentElement.dataset.theme || (dark ? "dark" : "light");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("bmg-theme", next); } catch {}
+  drawChart();
+};
+
+// tabs
+document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("on", x === b));
+  ["write", "tokens", "train", "model"].forEach((t) => $(t).classList.toggle("hidden", t !== b.dataset.tab));
+  if (b.dataset.tab === "train") loadLog();
+  if (b.dataset.tab === "tokens") tokenize();
+  if (b.dataset.tab === "model") drawModel();
+});
+
+// models
+async function loadModels() {
+  state.models = await (await fetch("/api/models")).json();
+  if (!state.models.length) {
+    $("out").innerHTML = `<div class="card empty">No checkpoints yet. Run <code>python train.py --size tiny</code> first.</div>`;
+    return;
+  }
+  if (!state.size) state.size = state.models[state.models.length - 1].size;   // biggest by default
+  $("models").innerHTML = state.models.map((m) =>
+    `<button class="chip ${m.size === state.size ? "on" : ""}" data-s="${m.size}"><b>${m.size}</b><span>${fmt(m.params)} · loss ${m.best_val.toFixed(2)}</span></button>`).join("");
+  document.querySelectorAll(".chip").forEach((c) => c.onclick = () => { state.size = c.dataset.s; loadModels(); refreshTab(); });
+}
+function refreshTab() {
+  const on = document.querySelector("#tabs .on").dataset.tab;
+  if (on === "train") loadLog();
+  if (on === "model") drawModel();
+}
+
+// sliders
+const sliders = { max: "v-max", temp: "v-temp", topk: "v-topk", topp: "v-topp", rep: "v-rep", seed: "v-seed" };
+Object.entries(sliders).forEach(([id, lab]) => {
+  const upd = () => $(lab).textContent = id === "seed" && $(id).value === "0" ? "random" : $(id).value;
+  $(id).oninput = upd; upd();
+});
+["বাংলাদেশ", "ঢাকা শহরের", "রবীন্দ্রনাথ ঠাকুর", "পদ্মা নদী", "১৯৭১ সালের মুক্তিযুদ্ধ", "বাংলা ভাষা", "ক্রিকেট"].forEach((s) => {
+  const b = document.createElement("button"); b.textContent = s; b.onclick = () => { $("prompt").value = s; generate([state.size]); };
+  $("sugg").appendChild(b);
+});
+
+// generate (streams NDJSON)
+async function generate(sizes) {
+  if (!state.models.length) return;
+  state.ctrl?.abort();
+  state.ctrl = new AbortController();
+  const prompt = $("prompt").value;
+  const seed = +$("seed").value || Math.floor(Math.random() * 1e6);
+  $("out").innerHTML = "";
+  $("go").disabled = $("cmp").disabled = true;
+  try {
+    for (const size of sizes) {
+      const m = state.models.find((x) => x.size === size);
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `<div class="meta"><span><b>${size}</b> · ${fmt(m.params)} params · step ${m.step}</span><span class="st">writing…</span></div>
+        <div class="result"><span class="p">${esc(prompt)}</span><span class="g"></span></div>`;
+      $("out").appendChild(card);
+      const g = card.querySelector(".g"), st = card.querySelector(".st");
+      const res = await fetch("/api/generate", {
+        method: "POST", headers: { "Content-Type": "application/json" }, signal: state.ctrl.signal,
+        body: JSON.stringify({ size, prompt, max_tokens: +$("max").value, temperature: +$("temp").value,
+          top_k: +$("topk").value, top_p: +$("topp").value, repeat_penalty: +$("rep").value, seed }),
+      });
+      const reader = res.body.getReader(), dec = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n"); buf = lines.pop();
+        for (const line of lines) {
+          if (!line) continue;
+          const ev = JSON.parse(line);
+          if (ev.t) g.textContent += ev.t;
+          if (ev.done) st.textContent = `${ev.tokens} tokens · ${ev.tok_per_s} tok/s · seed ${seed}`;
+        }
+      }
+    }
+  } catch (e) {
+    if (e.name !== "AbortError") $("out").insertAdjacentHTML("beforeend", `<div class="card empty">Error: ${esc(String(e))}</div>`);
+  } finally {
+    $("go").disabled = $("cmp").disabled = false;
+  }
+}
+$("go").onclick = () => generate([state.size]);
+$("cmp").onclick = () => generate(state.models.map((m) => m.size));
+$("stop").onclick = () => state.ctrl?.abort();
+$("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) generate([state.size]); });
+
+// tokens
+let tTimer;
+$("ttext").oninput = () => { clearTimeout(tTimer); tTimer = setTimeout(tokenize, 200); };
+async function tokenize() {
+  const r = await (await fetch("/api/tokenize", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: $("ttext").value }) })).json();
+  const words = $("ttext").value.trim().split(/\s+/).filter(Boolean).length;
+  $("tstats").innerHTML = [[r.chars, "characters"], [r.ids.length, "tokens"], [(r.chars / Math.max(r.ids.length, 1)).toFixed(2), "chars / token"],
+    [(r.ids.length / Math.max(words, 1)).toFixed(2), "tokens / word"]].map(([v, l]) => `<div class="stat"><div>${v}</div><span>${l}</span></div>`).join("");
+  $("toks").innerHTML = r.pieces.map((p, i) => {
+    const byte = /^<0x[0-9A-F]{2}>$/.test(p);
+    const hue = (r.ids[i] * 47) % 360;
+    return `<span class="tok ${byte ? "byte" : ""}" title="id ${r.ids[i]}" style="background:hsl(${hue} 60% 55% / .18)">${esc(p)}<sub>${r.ids[i]}</sub></span>`;
+  }).join("");
+}
+
+// training chart
+let logRows = [];
+async function loadLog() {
+  if (!state.size) return;
+  logRows = await (await fetch(`/api/log/${state.size}`)).json();
+  const last = logRows[logRows.length - 1];
+  $("trstats").innerHTML = last ? [[last.step, "steps"], [last.train.toFixed(3), "train loss"], [last.val.toFixed(3), "val loss"],
+    [Math.exp(last.val).toFixed(0), "perplexity"]].map(([v, l]) => `<div class="stat"><div>${v}</div><span>${l}</span></div>`).join("")
+    : `<div class="empty">No training log for ${state.size}.</div>`;
+  $("timeline").innerHTML = [...logRows].reverse().map((r) =>
+    `<div class="tl"><div class="s"><b>step ${r.step}</b>loss ${r.val.toFixed(2)}</div><div class="x">${esc(r.sample || "")}</div></div>`).join("");
+  drawChart();
+}
+function drawChart() {
+  const svg = $("chart");
+  if (!logRows.length) { svg.innerHTML = ""; return; }
+  const W = 800, H = 280, L = 44, R = 12, T = 12, B = 28;
+  const xs = logRows.map((r) => r.step), ys = logRows.flatMap((r) => [r.train, r.val]);
+  const x0 = 0, x1 = Math.max(...xs), y0 = Math.floor(Math.min(...ys) - 0.2), y1 = Math.ceil(Math.max(...ys) + 0.2);
+  const X = (v) => L + (v - x0) / Math.max(x1 - x0, 1) * (W - L - R), Y = (v) => T + (y1 - v) / (y1 - y0) * (H - T - B);
+  let g = "";
+  for (let v = y0; v <= y1; v += Math.max(1, Math.round((y1 - y0) / 5))) {
+    g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  [x0, x1 / 2, x1].forEach((v) => g += `<text x="${X(v)}" y="${H - 8}" text-anchor="middle">${Math.round(v)}</text>`);
+  const line = (key, color) => {
+    const pts = logRows.map((r) => `${X(r.step)},${Y(r[key])}`).join(" ");
+    return `<polyline points="${X(0)},${Y(logRows[0][key])} ${pts}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` +
+      logRows.map((r) => `<circle cx="${X(r.step)}" cy="${Y(r[key])}" r="3.5" fill="${color}"><title>step ${r.step}: ${r[key].toFixed(3)}</title></circle>`).join("");
+  };
+  svg.innerHTML = g + line("train", "var(--train)") + line("val", "var(--val)");
+}
+
+// model diagram
+function drawModel() {
+  const m = state.models.find((x) => x.size === state.size);
+  if (!m) return;
+  const c = m.config, emb = c.vocab_size * c.n_embd, blocks = m.params - emb;
+  const shown = Math.min(c.n_layer, 4);
+  let h = `<div class="layer io"><b>Token embedding</b><br><small>${fmt(c.vocab_size)} tokens → ${c.n_embd}-dim vectors</small></div><div class="arrow">▼</div>`;
+  for (let i = 0; i < shown; i++) {
+    h += `<div class="layer blk"><span>Block ${i + 1}</span><span>🔭 attention ×${c.n_head}</span><span>⚙ SwiGLU ${c.ffn_hidden}</span></div>`;
+    if (i === 1 && c.n_layer > 4) h += `<div class="arrow">⋮ ${c.n_layer - 4} more ⋮</div>`;
+  }
+  h += `<div class="arrow">▼</div><div class="layer io"><b>RMSNorm → next-token scores</b><br><small>shares weights with the embedding</small></div>`;
+  $("arch").innerHTML = h;
+  const pe = (emb / m.params * 100).toFixed(0);
+  $("pbar").children[0].style.width = pe + "%"; $("pbar").children[1].style.width = (100 - pe) + "%";
+  $("plegend").innerHTML = `<span>embedding ${fmt(emb)} (${pe}%)</span><span>blocks ${fmt(blocks)}</span>`;
+  const rows = [["Parameters", fmt(m.params)], ["Layers", c.n_layer], ["Heads", c.n_head], ["Width", c.n_embd], ["Context", c.block_size + " tokens"],
+    ["Vocab", fmt(c.vocab_size)], ["Trained steps", m.step], ["Best val loss", m.best_val.toFixed(3)], ["Checkpoint", m.updated]];
+  $("cfg").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+}
+
+loadModels();
+</script>
+</body>
+</html>
